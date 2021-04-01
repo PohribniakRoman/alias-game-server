@@ -3,6 +3,7 @@ const DBhendlers = require("../handlers/DBhendlers");
 const PasswordHandler = require("../handlers/PasswordHandler");
 const AuthSchema = require("../schema/auth");
 const SessionHandler = require("../handlers/SessionHandler");
+const authController = require("../controllers/auth/index");
 
 const router = Router();
 
@@ -13,10 +14,10 @@ router.post("/isAuthenticated", (req, res) => {
   });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { login, password } = req.body;
-  console.log(login, password);
-  res.send(JSON.stringify({ exist: false, entered: false }));
+  const loginResult = await authController.login(login, password);
+  res.status(200).send(loginResult);
 });
 
 router.post("/register", (req, res) => {
@@ -31,7 +32,6 @@ router.post("/register", (req, res) => {
         });
         user.save();
         new SessionHandler(login).generate().then((token) => {
-          console.log(token);
           res.send(JSON.stringify({ registrated: true, token }));
         });
       } else {

@@ -12,6 +12,13 @@ class PasswordHandler{
                 })
         })
     } 
+    comparePassword(userPassword){
+        return new Promise((resolve,reject)=>{
+                bcrypt.compare(this.password,userPassword).then((result)=>{
+                    resolve(result);
+                })
+        })
+    } 
 }
 
 module.exports = PasswordHandler;
