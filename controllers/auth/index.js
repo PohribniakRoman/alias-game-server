@@ -37,31 +37,3 @@ class AuthController {
 }
 
 module.exports = new AuthController();
-
-// const result = await new DBhendlers(password, login).findUser();
-//   if (result) {
-//     const compareResult = await new PasswordHandler(password).comparePassword(
-//       result.password
-//       );
-//       if (compareResult) {
-//       console.log(compareResult);
-//       const token = await new SessionHandler(login).generate();
-//       res.send(JSON.stringify({ exist: true, logined: true, token }));
-//     } else {
-//       res.send(
-//         JSON.stringify({
-//           exist: true,
-//           logined: false,
-//           massege: "Incorrect Password",
-//         })
-//       );
-//     }
-//   } else {
-//     res.send(
-//       JSON.stringify({
-//         exist: false,
-//         logined: false,
-//         massege: "Incorrect login",
-//       })
-//     );
-//   }
