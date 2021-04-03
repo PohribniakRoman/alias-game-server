@@ -14,25 +14,56 @@ class AuthController {
       if (compareResult) {
         const token = await new SessionHandler(login).generate();
 
-        return this.createResponse({ exist: true, logined: true, token });
+        return this.createLoginResponse({ exist: true, logined: true, token });
       }
 
-      return this.createResponse({
+      return this.createLoginResponse({
         exist: true,
         logined: false,
-        massege: "Incorrect Password",
+        message: "Incorrect Password",
       });
     }
 
-    return this.createResponse({
+    return this.createLoginResponse({
       exist: false,
       logined: false,
-      massege: "Incorrect login",
+      message: "Incorrect login",
     });
   }
 
-  createResponse({ exist, logined, massege, token }) {
-    return { exist, logined, massege, token };
+  createLoginResponse({ exist, logined, message, token }) {
+    return { exist, logined, message, token };
+  }
+
+  async register(login, password) {
+    const hashedPassword = await new PasswordHandler(password).hashPassword();
+
+    const result = await new DBhendlers(password, login).findUser();
+
+    if (!result) {
+      const token = await new SessionHandler(login).generate();
+
+      const saveUser = await new PasswordHandler().saveUser(
+        login,
+        hashedPassword
+      );
+
+      if (saveUser) {
+        return this.createPasswordResponse({
+          registrated: true,
+          token,
+        });
+      }
+    }
+
+    return this.createPasswordResponse({
+      registrated: false,
+      message: "User alredy exist",
+    });
+  }
+
+  createPasswordResponse({ registrated, token, message }) {
+    return { registrated, token, message };
   }
 }
 

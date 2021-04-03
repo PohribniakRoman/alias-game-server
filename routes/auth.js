@@ -20,27 +20,10 @@ router.post("/login", async (req, res) => {
   res.status(200).send(loginResult);
 });
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const { login, password } = req.body;
-
-  new PasswordHandler(password).hashPassword().then((hashedPassword) => {
-    new DBhendlers(password, login).findUser().then((result) => {
-      if (!result) {
-        const user = AuthSchema({
-          login: login,
-          password: hashedPassword,
-        });
-        user.save();
-        new SessionHandler(login).generate().then((token) => {
-          res.send(JSON.stringify({ registrated: true, token }));
-        });
-      } else {
-        res.send(
-          JSON.stringify({ registrated: false, massege: "User alredy exist" })
-        );
-      }
-    });
-  });
+  const regResult = await authController.register(login, password);
+  res.status(200).send(regResult);
 });
 
 module.exports = router;
