@@ -47,7 +47,7 @@ class AuthController {
         login,
         hashedPassword
       );
-
+      // const createProfile = await 
       if (saveUser) {
         return this.createPasswordResponse({
           registrated: true,

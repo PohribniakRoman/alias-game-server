@@ -8,19 +8,13 @@ class DBhendlers {
   }
   findUser() {
     return Candidate.findOne({ login: this.login });
-    return new Promise((resolve, reject) => {
-      Candidate.findOne({ login: this.login }, (err, result) => {
-        resolve(result);
-      });
-    });
   }
   findToken(token) {
     return Session.findOne({ token });
-    return new Promise((resolve, reject) => {
-      Session.findOne({ token: token }, (err, result) => {
-        resolve(result);
-      });
-    });
+  }
+  
+  getAllUsers(){
+    return Candidate.find({})
   }
 }
 
