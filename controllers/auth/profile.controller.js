@@ -1,3 +1,4 @@
+const DBhendlers = require("../../handlers/DBhendlers");
 const ProfileHandler = require("../../handlers/ProfileHandlers");
 
 class ProfileController {
@@ -20,9 +21,14 @@ class ProfileController {
     );
   }
 
-  async getFriendList(name){
-      const friendList = await ProfileHandler.getFriends(name);
-      return friendList;
+  async getFriendList(name) {
+    const friendList = await ProfileHandler.getFriends(name);
+    return friendList;
+  }
+
+  async getStat(name) {
+    const stat = await ProfileHandler.findUser(name);
+    return stat;
   }
 }
 module.exports = new ProfileController();

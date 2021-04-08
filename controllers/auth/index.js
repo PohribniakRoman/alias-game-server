@@ -4,7 +4,7 @@ const SessionHandler = require("../../handlers/SessionHandler");
 
 class AuthController {
   async login(login, password) {
-    const result = await new DBhendlers(password, login).findUser();
+    const result = await new DBhendlers( password,login ).findUser();
 
     if (result) {
       const compareResult = await new PasswordHandler(password).comparePassword(
@@ -38,7 +38,7 @@ class AuthController {
   async register(login, password) {
     const hashedPassword = await new PasswordHandler(password).hashPassword();
 
-    const result = await new DBhendlers(password, login).findUser();
+    const result = await new DBhendlers(login).findUser();
 
     if (!result) {
       const token = await new SessionHandler(login).generate();
@@ -47,7 +47,6 @@ class AuthController {
         login,
         hashedPassword
       );
-      // const createProfile = await 
       if (saveUser) {
         return this.createPasswordResponse({
           registrated: true,

@@ -23,10 +23,16 @@ router.post("/removeFriend", async (req, res) => {
   const remove = await profileController.removeFriend(name, friendToRemove);
 });
 
-router.post("/getAllFriends",async (req,res)=>{
-  const {name} = req.body
-  const friendList = await profileController.getFriendList(name)
-  res.status(200).send(friendList)
+router.post("/getAllFriends", async (req, res) => {
+  const { name } = req.body;
+  const friendList = await profileController.getFriendList(name);
+  res.status(200).send(friendList);
+});
+
+router.post("/get-profile",async (req,res)=>{
+  const {name} = req.body;
+  const stat = await profileController.getStat(name);
+  res.status(200).send(stat)
 })
 
 module.exports = router;
