@@ -3,10 +3,18 @@ const router = require("./routes/auth");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const profile = require("./routes/profile");
-
 const PORT = process.env.PORT || 5000;
 
 const app = express();
+
+const server = require("http").createServer(app);
+const io = require("socket.io")(server, {cors: {
+  methods: ["GET", "POST"]
+}});
+
+io.on("connect", (socket) => {
+  console.log(socket.id);
+});
 
 const password = `qwer556677`;
 const login = `admin`;
@@ -22,7 +30,7 @@ async function start() {
     `mongodb+srv://${login}:${password}@cluster0.o7x2c.mongodb.net`,
     { useNewUrlParser: true, useUnifiedTopology: true }
   );
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}...`);
   });
 }
