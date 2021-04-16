@@ -3,17 +3,36 @@ const router = require("./routes/auth");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const profile = require("./routes/profile");
+const game = require("./routes/game");
+
 const PORT = process.env.PORT || 5000;
 
 const app = express();
 
 const server = require("http").createServer(app);
-const io = require("socket.io")(server, {cors: {
-  methods: ["GET", "POST"]
-}});
+const io = require("socket.io")(server, {
+  cors: {
+    methods: ["GET", "POST"],
+  },
+});
+
+const rooms = [];
 
 io.on("connect", (socket) => {
-  console.log(socket.id);
+  
+  io.sockets.emit("create room", socket.id);
+
+  io.sockets.emit("get rooms", rooms);
+
+  socket.on("create room", (data) => {
+
+    rooms.push({ creator: data.name, id: socket.id, gameUsers: [data.name] });
+
+  });
+
+  socket.on("disconnect", (data) => {
+    console.log(data);
+  });
 });
 
 const password = `qwer556677`;
@@ -24,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use("/api", router);
 app.use("/api", profile);
+app.use("/api", game);
 
 async function start() {
   await mongoose.connect(
