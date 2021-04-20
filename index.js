@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const profile = require("./routes/profile");
 const game = require("./routes/game");
+const { validate, version } = require("uuid");
 
 const PORT = process.env.PORT || 5000;
 
@@ -16,23 +17,74 @@ const io = require("socket.io")(server, {
   },
 });
 
-const rooms = [];
+function getClientRooms() {
+  const { rooms } = io.sockets.adapter;
+  return Array.from(rooms.keys()).filter(
+    (r) => validate(r) && version(r) === 4
+  );
+}
+
+function shareRoomsInfo() {
+  io.emit("SHARE_ROOMS", {
+    rooms: getClientRooms(),
+  });
+}
 
 io.on("connect", (socket) => {
-  
-  io.sockets.emit("create room", socket.id);
+  shareRoomsInfo();
 
-  io.sockets.emit("get rooms", rooms);
-
-  socket.on("create room", (data) => {
-
-    rooms.push({ creator: data.name, id: socket.id, gameUsers: [data.name] });
-
+  socket.on("FETCH_ROOMS", () => {
+    socket.emit("SHARE_ROOMS", {
+      rooms: getClientRooms(),
+    });
   });
 
-  socket.on("disconnect", (data) => {
-    console.log(data);
+  socket.on("JOIN_ROOM", ({ id: roomId }) => {
+    if (validate(roomId) && version(roomId) === 4) {
+      socket.join(roomId);
+
+      const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+      console.log(clients);
+      socket.to(roomId).emit("ENTER", {
+        newClientId: socket.id,
+      });
+
+      socket.on("SEND_NAME", ({ roomId, name }) => {
+        socket.to(roomId).emit("SAY_NAME", { player: name });
+      });
+      
+      socket.emit("ENTER", {
+        clients: clients.filter((c) => c !== socket.id),
+      });
+      shareRoomsInfo();
+    }
   });
+
+  function leaveRoom() {
+    const { rooms } = socket;
+
+    Array.from(rooms).forEach((roomId) => {
+      const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+
+      clients.forEach((clientId) => {
+        io.to(clientId).emit("LEFT", {
+          userId: socket.id,
+        });
+
+        socket.emit("LEFT", {
+          userId: clientId,
+        });
+      });
+
+      socket.leave(roomId);
+    });
+
+    shareRoomsInfo();
+  }
+
+  socket.on("LEAVE_ROOM", leaveRoom);
+
+  socket.on("disconnecting", leaveRoom);
 });
 
 const password = `qwer556677`;
