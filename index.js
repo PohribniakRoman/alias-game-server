@@ -31,6 +31,28 @@ function shareRoomsInfo() {
 }
 
 io.on("connect", (socket) => {
+  function leaveRoom() {
+    const { rooms } = socket;
+  
+    Array.from(rooms).forEach((roomId) => {
+      const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+  
+      clients.forEach((clientId) => {
+        io.to(clientId).emit("LEFT", {
+          userId: socket.id,
+        });
+  
+        socket.emit("LEFT", {
+          userId: clientId,
+        });
+      });
+  
+      socket.leave(roomId);
+    });
+  
+    shareRoomsInfo();
+  }
+  
   shareRoomsInfo();
 
   socket.on("FETCH_ROOMS", () => {
@@ -39,18 +61,12 @@ io.on("connect", (socket) => {
     });
   });
 
-  socket.on("JOIN_ROOM", ({ id: roomId }) => {
+  socket.on("JOIN_ROOM", ({ id: roomId}) => {
     if (validate(roomId) && version(roomId) === 4) {
       socket.join(roomId);
-
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-      console.log(clients);
       socket.to(roomId).emit("ENTER", {
         newClientId: socket.id,
-      });
-
-      socket.on("SEND_NAME", ({ roomId, name }) => {
-        socket.to(roomId).emit("SAY_NAME", { player: name });
       });
       
       socket.emit("ENTER", {
@@ -60,27 +76,15 @@ io.on("connect", (socket) => {
     }
   });
 
-  function leaveRoom() {
-    const { rooms } = socket;
+  socket.on("SAY_HI",({id,name})=>{
+    if (validate(id) && version(id) === 4) {
+      const clients = Array.from(io.sockets.adapter.rooms.get(id) || []).filter(client => client !== socket.id);
+      clients.forEach(client =>{
+        io.to(client).emit("HELLO",name)
+      })
+    }
+  })
 
-    Array.from(rooms).forEach((roomId) => {
-      const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-
-      clients.forEach((clientId) => {
-        io.to(clientId).emit("LEFT", {
-          userId: socket.id,
-        });
-
-        socket.emit("LEFT", {
-          userId: clientId,
-        });
-      });
-
-      socket.leave(roomId);
-    });
-
-    shareRoomsInfo();
-  }
 
   socket.on("LEAVE_ROOM", leaveRoom);
 
