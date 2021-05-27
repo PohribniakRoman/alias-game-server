@@ -17,78 +17,48 @@ const io = require("socket.io")(server, {
   },
 });
 
-function getClientRooms() {
-  const { rooms } = io.sockets.adapter;
-  return Array.from(rooms.keys()).filter(
-    (r) => validate(r) && version(r) === 4
-  );
-}
 
-function shareRoomsInfo() {
-  io.emit("SHARE_ROOMS", {
-    rooms: getClientRooms(),
-  });
+function getRooms() {
+  return [...io.sockets.adapter.rooms.keys()].filter(roomId => validate(roomId))
+}
+function shareRooms() {
+  io.emit("SHARE_ROOMS",{rooms:getRooms()});
 }
 
 io.on("connect", (socket) => {
-  function leaveRoom() {
-    const { rooms } = socket;
-  
-    Array.from(rooms).forEach((roomId) => {
-      const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-  
-      clients.forEach((clientId) => {
-        io.to(clientId).emit("LEFT", {
-          userId: socket.id,
-        });
-  
-        socket.emit("LEFT", {
-          userId: clientId,
-        });
-      });
-  
-      socket.leave(roomId);
-    });
-  
-    shareRoomsInfo();
-  }
-  
-  shareRoomsInfo();
-
-  socket.on("FETCH_ROOMS", () => {
-    socket.emit("SHARE_ROOMS", {
-      rooms: getClientRooms(),
-    });
-  });
-
-  socket.on("JOIN_ROOM", ({ id: roomId}) => {
+  socket.on("JOIN_ROOM",({roomId}) => {
     if (validate(roomId) && version(roomId) === 4) {
       socket.join(roomId);
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-      socket.to(roomId).emit("ENTER", {
-        newClientId: socket.id,
+      io.in(roomId).emit("ENTER", {
+        clients,
+        newClient_id:socket.id
       });
       
-      socket.emit("ENTER", {
-        clients: clients.filter((c) => c !== socket.id),
-      });
-      shareRoomsInfo();
+      const names = [];
+       clients.forEach(client=>{
+        io.to(client).emit("SAY_NAME");
+        socket.on("GREETING",({name})=>{
+          names.push(name)
+        })
+        console.log(names);
+      })
+      shareRooms();
     }
   });
 
-  socket.on("SAY_HI",({id,name})=>{
-    if (validate(id) && version(id) === 4) {
-      const clients = Array.from(io.sockets.adapter.rooms.get(id) || []).filter(client => client !== socket.id);
-      clients.forEach(client =>{
-        io.to(client).emit("HELLO",name)
-      })
-    }
+  socket.on("LEAVE_ROOM", ({roomId}) => {
+    const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []).filter(user => user !== socket.id);
+    io.in(roomId).emit("LEFT", {
+      clients,
+      leftClient_id:socket.id
+    });
+    socket.leave(roomId);
+    shareRooms();
   })
 
+  socket.on("GET_ROOMS",()=>{shareRooms()});
 
-  socket.on("LEAVE_ROOM", leaveRoom);
-
-  socket.on("disconnecting", leaveRoom);
 });
 
 const password = `qwer556677`;
