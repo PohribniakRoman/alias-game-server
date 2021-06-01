@@ -26,22 +26,19 @@ function shareRooms() {
 }
 
 io.on("connect", (socket) => {
-  socket.on("JOIN_ROOM",({roomId}) => {
+  socket.on("JOIN_ROOM",({roomId,name}) => {
     if (validate(roomId) && version(roomId) === 4) {
       socket.join(roomId);
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
       io.in(roomId).emit("ENTER", {
         clients,
-        newClient_id:socket.id
+        newClient_id:socket.id,
       });
-      
-      const names = [];
-       clients.forEach(client=>{
-        io.to(client).emit("SAY_NAME");
-        socket.on("GREETING",({name})=>{
-          names.push(name)
+      io.in(roomId).emit("SAY_NAME");
+      socket.on("SEND_NAME",({name})=>{
+        clients.forEach(client=>{
+          io.to(client).emit("GET_NAMES",{name});
         })
-        console.log(names);
       })
       shareRooms();
     }
