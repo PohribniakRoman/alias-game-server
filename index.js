@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const profile = require("./routes/profile");
 const game = require("./routes/game");
 const { validate, version } = require("uuid");
+const Room = require("./schema/room");
 
 const PORT = process.env.PORT || 5000;
 
@@ -17,45 +18,61 @@ const io = require("socket.io")(server, {
   },
 });
 
-
 function getRooms() {
-  return [...io.sockets.adapter.rooms.keys()].filter(roomId => validate(roomId))
+  return [...io.sockets.adapter.rooms.keys()].filter((roomId) =>
+    validate(roomId)
+  );
 }
 function shareRooms() {
-  io.emit("SHARE_ROOMS",{rooms:getRooms()});
+  io.emit("SHARE_ROOMS", { rooms: getRooms() });
 }
 
 io.on("connect", (socket) => {
-  socket.on("JOIN_ROOM",({roomId,name}) => {
+  socket.on("JOIN_ROOM", ({ roomId, name }) => {
     if (validate(roomId) && version(roomId) === 4) {
       socket.join(roomId);
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
       io.in(roomId).emit("ENTER", {
         clients,
-        newClient_id:socket.id,
+        newClient_id: socket.id,
       });
-      io.in(roomId).emit("SAY_NAME");
-      socket.on("SEND_NAME",({name})=>{
-        clients.forEach(client=>{
-          io.to(client).emit("GET_NAMES",{name});
-        })
-      })
+      Room.findOne({ roomId }).then((exist) => {
+        if (!exist) {
+          new Room({ roomId, name }).save();
+        } else {
+          if (!exist.name.includes(name)) {
+            const currentNames = [...exist.name,name]
+            Room.updateOne({ roomId }, { $set: {name:currentNames} }).then();
+          }
+        }
+      });
       shareRooms();
     }
   });
 
-  socket.on("LEAVE_ROOM", ({roomId}) => {
-    const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []).filter(user => user !== socket.id);
+  socket.on("LEAVE_ROOM", ({ roomId,name}) => {
+    const clients = Array.from(
+      io.sockets.adapter.rooms.get(roomId) || []
+    ).filter((user) => user !== socket.id);
     io.in(roomId).emit("LEFT", {
       clients,
-      leftClient_id:socket.id
+      leftClient_id: socket.id,
     });
     socket.leave(roomId);
+    Room.findOne({ roomId }).then((exist) => {
+        const currentNames = exist.name.filter(r => r !== name);
+        if (currentNames.length === 0) {
+          Room.deleteOne({roomId}).then();
+        }else{
+          Room.updateOne({ roomId }, { $set: {name:currentNames} }).then();
+        }
+    });
     shareRooms();
-  })
+  });
 
-  socket.on("GET_ROOMS",()=>{shareRooms()});
-
+  socket.on("GET_ROOMS", () => {
+    shareRooms();
+  });
 });
 
 const password = `qwer556677`;

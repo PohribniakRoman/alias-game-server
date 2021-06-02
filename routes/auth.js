@@ -1,8 +1,5 @@
 const { Router } = require("express");
 const DBhendlers = require("../handlers/DBhendlers");
-const PasswordHandler = require("../handlers/PasswordHandler");
-const AuthSchema = require("../schema/auth");
-const SessionHandler = require("../handlers/SessionHandler");
 const authController = require("../controllers/auth/index");
 const profileController = require("../controllers/auth/profile.controller");
 
