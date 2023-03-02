@@ -1,10 +1,11 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { AuthService } from './auth.service';
 import { UserDto } from "./user.dto";
+import { TokenServices } from "./auth.token.service";
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authServices: AuthService) {}
+  constructor(private readonly authServices: AuthService,private readonly tokenServices:TokenServices) {}
   @Post('/register')
   async Register(@Body() user:UserDto){
     const isUserExist = await this.authServices.isUserExist(user.name);
@@ -16,8 +17,9 @@ export class AuthController {
   async Login(@Body() user:UserDto){
     const isUserExist = await this.authServices.isUserExist(user.name);
     if(isUserExist){
-      if(this.authServices.checkPassword(user)){
-        //gen token & redirect
+      if(await this.authServices.checkPassword(user)){
+            const data = await this.authServices.findUser(user.name);
+            await this.tokenServices.createToken(data.user._id);
       }
     }
   }
