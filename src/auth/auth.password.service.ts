@@ -10,5 +10,4 @@ export class PasswordService{
   comparePassword(password,hash):boolean{
    return bcrypt.compareSync(password,hash)
   }
-
 }

@@ -19,7 +19,11 @@ export class AuthController {
     if(isUserExist){
       if(await this.authServices.checkPassword(user)){
             const data = await this.authServices.findUser(user.name);
-            await this.tokenServices.createToken(data.user._id);
+            const isTokenExist = await this.tokenServices.findToken(data.user.id)
+            if(isTokenExist.success){
+              await  this.tokenServices.deleteToken(data.user.id);
+            }
+          await this.tokenServices.createToken(data.user._id);
       }
     }
   }
