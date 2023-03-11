@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { v4 } from  "uuid";
 import { InjectModel } from "@nestjs/mongoose";
-import { Token, TokenDocument } from "./schemas/token.schema";
+import { Token, TokenDocument } from "../schemas/token.schema";
 import mongoose, { Model } from "mongoose";
 @Injectable()
 export class TokenServices{
