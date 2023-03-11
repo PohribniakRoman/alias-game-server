@@ -39,26 +39,32 @@ export class AuthController {
       }
   }
   @Post('/login')
-  async Login(@Response() resp,@Body() user:UserDto){
-    const rewriteResult = rewriteData(user,this.dataService,resp);
-    if(!rewriteResult)return null
+  async Login(@Response() resp,@Body() user:UserDto) {
+    const rewriteResult = rewriteData(user, this.dataService, resp);
+    if (!rewriteResult) return null
 
     const isUserExist = await this.authServices.isUserExist(user.login);
-    if(isUserExist){
-      if(await this.authServices.checkPassword(user)){
-            const data = await this.authServices.findUser(user.login);
-            const isTokenExist = await this.tokenServices.findToken(data.user.id)
-            if(isTokenExist.success){
-              await this.tokenServices.deleteToken(data.user.id);
-            }
-          const { token } = await this.tokenServices.createToken(data.user._id);
-        console.log(token);
-          resp.json({status:401,token,message:"Passwords do not match!"})
-      }else{
-        resp.json({status:400,message:"Passwords do not match!"})
+    if (isUserExist) {
+      if (await this.authServices.checkPassword(user)) {
+        const data = await this.authServices.findUser(user.login);
+        const isTokenExist = await this.tokenServices.findToken(data.user.id)
+        if (isTokenExist.success) {
+          await this.tokenServices.deleteToken(data.user.id);
+        }
+        const { token } = await this.tokenServices.createToken(data.user._id);
+        resp.json({ status: 201, token, message: "Successful login!" })
+      } else {
+        resp.json({ status: 400, message: "Passwords do not match!" })
       }
-    }else{
-      resp.json({status:401,message:"User with such login doesn't exist!"})
+    } else {
+      resp.json({ status: 401, message: "User with such login doesn't exist!" })
     }
   }
+
+
+  @Post('/isAuthorized')
+  async IsAuthorized(@Response() resp,@Body() data:{token:string}){
+      const {success} = await this.tokenServices.findTokenByToken(data.token);
+      resp.json({success});
+    }
 }
