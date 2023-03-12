@@ -3,6 +3,7 @@ import { AuthService } from './authServices/auth.service';
 import { UserDto } from "./user.dto";
 import { TokenServices } from "./authServices/auth.token.service";
 import { DataService } from "./authServices/auth.data.service";
+import { ProfileServices } from "../profile/profile.services";
 
 
 function rewriteData(user,dataService,resp):boolean{
@@ -23,7 +24,7 @@ function rewriteData(user,dataService,resp):boolean{
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authServices: AuthService,private readonly tokenServices:TokenServices,private readonly dataService:DataService) {}
+  constructor(private readonly authServices: AuthService,private readonly tokenServices:TokenServices,private readonly dataService:DataService,private readonly profileServices:ProfileServices) {}
   @Post('/register')
   async Register(@Response() resp,@Body() user:UserDto){
     const rewriteResult = rewriteData(user,this.dataService,resp);
@@ -32,8 +33,9 @@ export class AuthController {
       if(!isUserExist){
         await this.authServices.toRegister(user);
         const data = await this.authServices.findUser(user.login);
-        const { token } = await this.tokenServices.createToken(data.user._id);
-        resp.json({status:201,token,message:"Successfully created!"})
+        const tokenData = await this.tokenServices.createToken(data.user._id);
+        await this.profileServices.createProfile(user.login,tokenData._id);
+        resp.json({status:201,token:tokenData.token,message:"Successfully created!"})
       }else{
         resp.json({status:401,message:"User with such login already exists!"})
       }
@@ -64,7 +66,9 @@ export class AuthController {
 
   @Post('/isAuthorized')
   async IsAuthorized(@Response() resp,@Body() data:{token:string}){
-      const {success} = await this.tokenServices.findTokenByToken(data.token);
-      resp.json({success});
+      const research = await this.tokenServices.findTokenByToken(data.token);
+      if(research.success){
+        resp.json({success:research.success,id:research.token._id});
+      }
     }
 }

@@ -18,7 +18,7 @@ export class AuthService {
     }
     return({success:false});
   }
-  async toRegister(user):Promise<User>{
+  toRegister(user):Promise<User>{
     const  hash = this.passwordService.genHash(user.password);
     const createUser = new this.userModel({login:user.login,password:hash});
     return createUser.save();

@@ -9,7 +9,7 @@ export class TokenServices{
   genToken():string{
     return v4();
   }
-  async createToken(forId):Promise<Token>{
+  createToken(forId):Promise<Token>{
     const newToken = new this.tokenModel({token:this.genToken(),_id:new  mongoose.Types.ObjectId(forId)})
     return newToken.save();
   }

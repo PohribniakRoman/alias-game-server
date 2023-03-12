@@ -7,6 +7,8 @@ const ObjectIdConstructor = mongoose.Types.ObjectId
 export class Token{
   @Prop({required:true,type:String})
   token:string;
+  @Prop({required:true,type:ObjectIdConstructor})
+  _id:ObjectId;
 }
 
 export const TokenSchema = SchemaFactory.createForClass(Token)
