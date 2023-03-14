@@ -16,11 +16,13 @@ export class ProfileController{
   }
   @Post("add")
   async add(@Body() data:{userId:string,profile:any}){
-    await this.profileServices.addToFriends(data.userId,data.profile);
+    await this.profileServices.addToSubscribeList(data.userId,data.profile);
+    await this.profileServices.addFromSubscribersList(data.userId,data.profile);
   }
 
   @Post("remove")
   async remove(@Body() data:{userId:string,profile:any}){
-    await this.profileServices.removeFromFriends(data.userId,data.profile);
+    await this.profileServices.removeFromSubscribeList(data.userId,data.profile);
+    await this.profileServices.removeFromSubscribersList(data.userId,data.profile);
   }
 }

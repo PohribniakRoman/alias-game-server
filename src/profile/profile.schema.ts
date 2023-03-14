@@ -8,7 +8,9 @@ export class Profile{
   @Prop({required:true,type:String})
   username:string;
   @Prop({required:true,type:Array})
-  friends:object;
+  subscribersList:object;
+  @Prop({required:true,type:Array})
+  subscribeList:object;
   @Prop({required:true,type:Object})
   statistic:object;
   @Prop({required:true,type:Number})

@@ -12,7 +12,7 @@ function getRandomInt(max) {
 export class ProfileServices{
   constructor(@InjectModel(Profile.name) private profileModel:Model<ProfileDocument>) {}
   createProfile(username,userId):Promise<Profile>{
-      const newProfile = new this.profileModel({username,friends:[],statistic:{win:0,loss:0,tie:0},avatar:getRandomInt(10),_id:userId})
+      const newProfile = new this.profileModel({username,subscribersList:[],subscribeList:[],statistic:{win:0,loss:0,tie:0},avatar:getRandomInt(10),_id:userId})
       return newProfile.save();
   }
   async getProfile(userId):Promise<any>{
@@ -22,15 +22,25 @@ export class ProfileServices{
     }
     return({success:false})
   }
-  async addToFriends(userId,data):Promise<any>{
+  async addToSubscribeList(userId,data):Promise<any> {
     const { profile } = await this.getProfile(userId);
-    const newFriends = profile.friends.filter(profile=>profile.username !== data.username);
-    newFriends.push(data);
-    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(userId)},{friends:newFriends});
+    const newSubscribe = profile.subscribeList.filter(profile=>profile.username !== data.username);
+    newSubscribe.push(data);
+    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(userId)},{subscribeList:newSubscribe});
   }
-  async removeFromFriends(userId,data):Promise<any>{
+  async  addFromSubscribersList(userId,data):Promise<any> {
     const { profile } = await this.getProfile(userId);
-    const newFriends = profile.friends.filter(profile=>profile.username !== data.username);
-    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(userId)},{friends:newFriends});
+    const newSubscribers = data.subscribersList.filter(profile=>profile._id !== userId);
+    newSubscribers.push(profile);
+    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(data._id)},{subscribersList:newSubscribers});
+  }
+  async removeFromSubscribeList(userId,data):Promise<any>{
+    const { profile } = await this.getProfile(userId);
+    const newSubscribe = profile.subscribeList.filter(profile=>profile.username !== data.username);
+    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(userId)},{subscribeList:newSubscribe});
+  }
+  async removeFromSubscribersList(userId,data):Promise<any> {
+    const newSubscribers = data.subscribersList.filter(profile=>profile._id !== userId);
+    return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(data._id)},{subscribersList:newSubscribers});
   }
 }
