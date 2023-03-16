@@ -3,8 +3,10 @@ import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { keys } from './keys';
 import { ProfileModule } from "./profile/profile.module";
+import { GameGateway } from "./game/game.gateway";
 
 @Module({
+  providers:[GameGateway],
   imports: [
     AuthModule,
     ProfileModule,

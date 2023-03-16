@@ -43,4 +43,13 @@ export class ProfileServices{
     const newSubscribers = data.subscribersList.filter(profile=>profile._id !== userId);
     return this.profileModel.findOneAndUpdate({_id:new  mongoose.Types.ObjectId(data._id)},{subscribersList:newSubscribers});
   }
+
+  async getAllProfiles():Promise<Array<{ id: string, username: string }>>{
+    const userList = [];
+    const rawData = await this.profileModel.find({});
+    rawData.forEach((user) => {
+      userList.push({id:user._id,username:user.username});
+    });
+    return userList;
+  }
 }

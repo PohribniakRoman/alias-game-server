@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Response } from "@nestjs/common";
+import { Body, Controller, Post, Get, Response } from "@nestjs/common";
 import { ProfileServices } from "./profile.services";
 
 @Controller("profile")
@@ -24,5 +24,11 @@ export class ProfileController{
   async remove(@Body() data:{userId:string,profile:any}){
     await this.profileServices.removeFromSubscribeList(data.userId,data.profile);
     await this.profileServices.removeFromSubscribersList(data.userId,data.profile);
+  }
+
+  @Get("all")
+  async getAll(@Response() resp){
+   const userlist = await this.profileServices.getAllProfiles();
+   resp.json(userlist);
   }
 }
