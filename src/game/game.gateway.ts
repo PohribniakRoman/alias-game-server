@@ -50,6 +50,7 @@ export class GameGateway implements OnGatewayDisconnect {
       DB.games[data.gameId].join(data.user,socket.id);
       socket.join(data.gameId);
       this.shareLobbies();
+      this.shareGame(data.gameId);
       return null;
     }
     this.createRoom(socket,data);
@@ -64,6 +65,7 @@ export class GameGateway implements OnGatewayDisconnect {
   leaveRoom(socket:Socket,data:any){
     socket.leave(data.gameId);
     DB.games[data.gameId].leave(socket.id);
+    this.shareGame(data.gameId);
     if(DB.games[data.gameId].participants.length === 0){
       DB.deleteGame(data.gameId);
     }
@@ -75,5 +77,8 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("GET_LOBBIES")
   shareLobbies(){
     this.server.emit("SHARE_LOBBIES",{games:DB.games})
+  }
+  shareGame(gameId:any){
+    this.server.emit("GAME_DATA",{game:DB.games[gameId]})
   }
 }
