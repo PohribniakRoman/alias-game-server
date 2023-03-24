@@ -16,14 +16,14 @@ class Storage{
 const DB = new Storage();
 class Game {
   participants:Array<any>;
-  messages:object;
   constructor(participant,socket){
     this.participants = [{participant,socket:socket}];
-    this.messages = [];
   };
    join(participant,socket){
-    this.participants = this.participants.filter(user => user.participant.name != participant.name)
-    this.participants.push({ participant, socket:socket})
+     if(this.participants.length < 4){
+      this.participants = this.participants.filter(user => user.participant.name != participant.name)
+      this.participants.push({ participant, socket:socket})
+     }
   }
   leave(socket){
     this.participants = this.participants.filter(user=>user.socket !== socket)
@@ -42,7 +42,6 @@ export class GameGateway implements OnGatewayDisconnect {
       }
     }
     this.shareLobbies();
-
   }
   @SubscribeMessage("ENTER")
   enterRoom(socket: Socket,data:any){
