@@ -17,16 +17,33 @@ const DB = new Storage();
 class Game {
   participants:Array<any>;
   constructor(participant,socket){
-    this.participants = [{participant,socket:socket}];
+    this.participants = [{participant,sockets:[socket]}];
   };
    join(participant,socket){
-     if(this.participants.length < 4){
-      this.participants = this.participants.filter(user => user.participant.name != participant.name)
-      this.participants.push({ participant, socket:socket})
+      let isUserAlredyIn = false;
+      this.participants.forEach(user=>{
+        if(user.participant.username === participant.username){
+          user.sockets.push(socket);
+          isUserAlredyIn = true;
+        }
+      })
+     if(!isUserAlredyIn){
+        this.participants.push({ participant, sockets:[socket]})
      }
   }
+  isFull(){
+     if(this.participants.length >= 4){
+      return true
+     }
+     return false
+  }
   leave(socket){
-    this.participants = this.participants.filter(user=>user.socket !== socket)
+    this.participants.forEach(user=>{
+      user.sockets = user.sockets.filter(connectedSocket=>connectedSocket !== socket);
+      if (user.sockets.length === 0){
+        this.participants = this.participants.filter(connectedUser=>connectedUser.participant.username !== user.participant.username);
+      }
+    })
   }
 }
 
@@ -46,18 +63,22 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("ENTER")
   enterRoom(socket: Socket,data:any){
     if(DB.games.hasOwnProperty(data.gameId)){
+      if(!DB.games[data.gameId].isFull()){
       DB.games[data.gameId].join(data.user,socket.id);
       socket.join(data.gameId);
       this.shareLobbies();
       this.shareGame(data.gameId);
       return null;
+      }
     }
     this.createRoom(socket,data);
   }
 
   createRoom(socket: Socket,data:any){
       DB.createGame(data.gameId,new Game(data.user,socket.id))
-      this.enterRoom(socket,data);
+      socket.join(data.gameId);
+      this.shareLobbies();
+      this.shareGame(data.gameId);
   }
 
   @SubscribeMessage("LEAVE")
