@@ -13,6 +13,7 @@ class Storage{
     this.games[id]=game;
   }
 }
+
 const DB = new Storage();
 class Game {
   participants:Array<any>;
