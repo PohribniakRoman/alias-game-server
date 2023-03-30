@@ -17,12 +17,14 @@ class Storage{
 const DB = new Storage();
 class Game {
   participants:Array<any>;
-  constructor(participant,socket){
-    this.participants = [{participant,sockets:[socket]}];
+  teams:Array<any>;
+  constructor(teams){
+    this.participants =[];
+    this.teams = teams;
   };
    join(participant,socket){
       let isUserAlredyIn = false;
-      this.participants.forEach(user=>{
+      this.participants?.forEach(user=>{
         if(user.participant.username === participant.username){
           user.sockets.push(socket);
           isUserAlredyIn = true;
@@ -31,6 +33,22 @@ class Game {
      if(!isUserAlredyIn){
         this.participants.push({ participant, sockets:[socket]})
      }
+  }
+
+  joinTeam(socket,team){
+     this.participants.forEach(participant=>{
+       if(participant.sockets.includes(socket)){
+         participant.team = team;
+       }
+     })
+  }
+
+  leaveTeam(socket){
+    this.participants.forEach(participant=>{
+      if(participant.sockets.includes(socket)){
+       delete participant.team;
+      }
+    })
   }
   isFull(){
      if(this.participants.length >= 4){
@@ -67,30 +85,30 @@ export class GameGateway implements OnGatewayDisconnect {
       if(!DB.games[data.gameId].isFull()){
       DB.games[data.gameId].join(data.user,socket.id);
       socket.join(data.gameId);
+        console.log(DB.games[data.gameId]);
       this.shareLobbies();
       this.shareGame(data.gameId);
-      return null;
       }
     }
-    this.createRoom(socket,data);
   }
 
+  @SubscribeMessage("CREATE_GAME")
   createRoom(socket: Socket,data:any){
-      DB.createGame(data.gameId,new Game(data.user,socket.id))
-      socket.join(data.gameId);
-      this.shareLobbies();
-      this.shareGame(data.gameId);
+      DB.createGame(data.gameId,new Game(data.teams))
   }
 
   @SubscribeMessage("LEAVE")
   leaveRoom(socket:Socket,data:any){
-    socket.leave(data.gameId);
-    DB.games[data.gameId].leave(socket.id);
-    this.shareGame(data.gameId);
-    if(DB.games[data.gameId].participants.length === 0){
-      DB.deleteGame(data.gameId);
+    console.log("work");
+    if(DB.games.hasOwnProperty(data.gameId)) {
+      socket.leave(data.gameId);
+      DB.games[data.gameId].leave(socket.id);
+      this.shareGame(data.gameId);
+      if (DB.games[data.gameId].participants.length === 0) {
+        DB.deleteGame(data.gameId);
+      }
+      this.shareLobbies();
     }
-    this.shareLobbies();
   }
   updateData(socket:Socket,data){
     this.server.to(data.gameId).emit("UPDATE_DATA",{game:DB.games[data.gameId]})
