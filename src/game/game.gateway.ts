@@ -1,5 +1,5 @@
-import { MessageBody,SubscribeMessage, WebSocketGateway,WebSocketServer, OnGatewayDisconnect} from "@nestjs/websockets";
-import { Server, Socket } from 'socket.io';
+import { SubscribeMessage, WebSocketGateway,WebSocketServer, OnGatewayDisconnect} from "@nestjs/websockets";
+import { Socket } from 'socket.io';
 
 class Storage{
   games:object;
@@ -72,9 +72,11 @@ export class GameGateway implements OnGatewayDisconnect {
   server;
   handleDisconnect(socket:Socket){
     for(let key in DB.games){
+      this.leaveRoom(socket,{gameId:key})
       DB.games[key].leave(socket.id)
       if(DB.games[key].participants.length === 0){
         DB.deleteGame(key);
+        this.updateData(key);
       }
     }
     this.shareLobbies();
@@ -87,7 +89,7 @@ export class GameGateway implements OnGatewayDisconnect {
       socket.join(data.gameId);
         console.log(DB.games[data.gameId]);
       this.shareLobbies();
-      this.shareGame(data.gameId);
+      this.updateData(data.gameId);
       }
     }
   }
@@ -99,25 +101,22 @@ export class GameGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage("LEAVE")
   leaveRoom(socket:Socket,data:any){
-    console.log("work");
     if(DB.games.hasOwnProperty(data.gameId)) {
       socket.leave(data.gameId);
       DB.games[data.gameId].leave(socket.id);
-      this.shareGame(data.gameId);
+      this.updateData(data.gameId);
       if (DB.games[data.gameId].participants.length === 0) {
         DB.deleteGame(data.gameId);
       }
       this.shareLobbies();
     }
   }
-  updateData(socket:Socket,data){
-    this.server.to(data.gameId).emit("UPDATE_DATA",{game:DB.games[data.gameId]})
+  updateData(gameId){
+    this.server.to(gameId).emit("UPDATE_DATA",{game:DB.games[gameId]})
   }
   @SubscribeMessage("GET_LOBBIES")
   shareLobbies(){
     this.server.emit("SHARE_LOBBIES",{games:DB.games})
   }
-  shareGame(gameId:any){
-    this.server.emit("GAME_DATA",{game:DB.games[gameId]})
-  }
+
 }
