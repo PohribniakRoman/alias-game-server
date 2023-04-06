@@ -18,10 +18,13 @@ const DB = new Storage();
 class Game {
   participants:Array<any>;
   teams:Array<any>;
+  isGameStarted:boolean;
   constructor(teams){
     this.participants =[];
     this.teams = teams;
+    this.isGameStarted = false;
   };
+
    join(participant,socket){
       let isUserAlredyIn = false;
       this.participants?.forEach(user=>{
@@ -46,7 +49,7 @@ class Game {
   leaveTeam(socket){
     this.participants.forEach(participant=>{
       if(participant.sockets.includes(socket)){
-       delete participant.team;
+        if(participant.team) delete participant.team;
       }
     })
   }
@@ -87,16 +90,38 @@ export class GameGateway implements OnGatewayDisconnect {
       if(!DB.games[data.gameId].isFull()){
       DB.games[data.gameId].join(data.user,socket.id);
       socket.join(data.gameId);
-        console.log(DB.games[data.gameId]);
       this.shareLobbies();
       this.updateData(data.gameId);
       }
     }
   }
 
+  @SubscribeMessage("JOIN_TEAM")
+  joinTeam(socket: Socket,data:any){
+    if(DB.games.hasOwnProperty(data.gameId)){
+      DB.games[data.gameId].leaveTeam(socket.id);
+      DB.games[data.gameId].joinTeam(socket.id,data.team);
+      this.updateData(data.gameId);
+    }
+  }
+  
   @SubscribeMessage("CREATE_GAME")
   createRoom(socket: Socket,data:any){
       DB.createGame(data.gameId,new Game(data.teams))
+  }
+
+  @SubscribeMessage("IS_GAME_STARTED")
+  isStarted(socket:Socket,data:Record<string,string>){
+    if(DB.games.hasOwnProperty(data.gameId)){
+      this.server.to(data.gameId).emit("GAME_STATE",{isStarted:DB.games[data.gameId].isGameStarted})
+    }
+  }
+  @SubscribeMessage("START_GAME")
+  startGame(socket:Socket,data:Record<string,string>){
+    if(DB.games.hasOwnProperty(data.gameId)){
+      DB.games[data.gameId].isGameStarted = true;
+      }
+    this.isStarted(socket,data)
   }
 
   @SubscribeMessage("LEAVE")
@@ -111,9 +136,11 @@ export class GameGateway implements OnGatewayDisconnect {
       this.shareLobbies();
     }
   }
+
   updateData(gameId){
     this.server.to(gameId).emit("UPDATE_DATA",{game:DB.games[gameId]})
   }
+  
   @SubscribeMessage("GET_LOBBIES")
   shareLobbies(){
     this.server.emit("SHARE_LOBBIES",{games:DB.games})
