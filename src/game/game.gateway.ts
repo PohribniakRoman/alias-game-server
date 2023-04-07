@@ -54,7 +54,7 @@ class Game {
     })
   }
   isFull(){
-     if(this.participants.length >= 4){
+     if(this.participants.length >= this.teams.length*2){
       return true
      }
      return false
