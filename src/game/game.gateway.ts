@@ -18,12 +18,27 @@ const DB = new Storage();
 class Game {
   participants:Array<any>;
   teams:Array<any>;
+  timer:number;
   isGameStarted:boolean;
   constructor(teams){
     this.participants =[];
     this.teams = teams;
     this.isGameStarted = false;
   };
+
+    setTimer(server,roomId){
+      this.timer = 60;
+      const intervalID = setInterval(()=>{
+        if(this.timer === 0){
+          clearInterval(intervalID);
+        }else{
+          this.timer--;
+        }
+    },1000)  
+    }
+    getTimer(){
+      return this.timer;
+    }
 
    join(participant,socket){
       let isUserAlredyIn = false;
@@ -140,7 +155,21 @@ export class GameGateway implements OnGatewayDisconnect {
   updateData(gameId){
     this.server.to(gameId).emit("UPDATE_DATA",{game:DB.games[gameId]})
   }
+  @SubscribeMessage("GET_TIMER")
+    getTimer(socket:Socket,data){
+    if(DB.games.hasOwnProperty(data.gameId)) {
+      socket.emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
+    }
+  }
+  @SubscribeMessage("START_TIMER")
+  startTimer(socket:Socket,data){
+    if(DB.games.hasOwnProperty(data.gameId)) {
+      DB.games[data.gameId].setTimer();
+      socket.emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
+    }
+  }
   
+
   @SubscribeMessage("GET_LOBBIES")
   shareLobbies(){
     this.server.emit("SHARE_LOBBIES",{games:DB.games})
