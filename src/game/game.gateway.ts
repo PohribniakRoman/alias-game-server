@@ -1,88 +1,9 @@
 import { SubscribeMessage, WebSocketGateway,WebSocketServer, OnGatewayDisconnect} from "@nestjs/websockets";
 import { Socket } from 'socket.io';
-
-class Storage{
-  games:object;
-  constructor() {
-    this.games = {};
-  }
-  deleteGame(id){
-    delete this.games[id];
-  }
-  createGame(id,game){
-    this.games[id]=game;
-  }
-}
+import { Game } from "./Game";
+import { Storage } from "./Storage";
 
 const DB = new Storage();
-class Game {
-  participants:Array<any>;
-  teams:Array<any>;
-  timer:number;
-  isGameStarted:boolean;
-  constructor(teams){
-    this.participants =[];
-    this.teams = teams;
-    this.isGameStarted = false;
-  };
-
-    setTimer(server,roomId){
-      this.timer = 60;
-      const intervalID = setInterval(()=>{
-        if(this.timer === 0){
-          clearInterval(intervalID);
-        }else{
-          this.timer--;
-        }
-    },1000)  
-    }
-    getTimer(){
-      return this.timer;
-    }
-
-   join(participant,socket){
-      let isUserAlredyIn = false;
-      this.participants?.forEach(user=>{
-        if(user.participant.username === participant.username){
-          user.sockets.push(socket);
-          isUserAlredyIn = true;
-        }
-      })
-     if(!isUserAlredyIn){
-        this.participants.push({ participant, sockets:[socket]})
-     }
-  }
-
-  joinTeam(socket,team){
-     this.participants.forEach(participant=>{
-       if(participant.sockets.includes(socket)){
-         participant.team = team;
-       }
-     })
-  }
-
-  leaveTeam(socket){
-    this.participants.forEach(participant=>{
-      if(participant.sockets.includes(socket)){
-        if(participant.team) delete participant.team;
-      }
-    })
-  }
-  isFull(){
-     if(this.participants.length >= this.teams.length*2){
-      return true
-     }
-     return false
-  }
-  leave(socket){
-    this.participants.forEach(user=>{
-      user.sockets = user.sockets.filter(connectedSocket=>connectedSocket !== socket);
-      if (user.sockets.length === 0){
-        this.participants = this.participants.filter(connectedUser=>connectedUser.participant.username !== user.participant.username);
-      }
-    })
-  }
-}
 
 @WebSocketGateway()
 export class GameGateway implements OnGatewayDisconnect {
@@ -91,10 +12,12 @@ export class GameGateway implements OnGatewayDisconnect {
   handleDisconnect(socket:Socket){
     for(let key in DB.games){
       this.leaveRoom(socket,{gameId:key})
-      DB.games[key].leave(socket.id)
-      if(DB.games[key].participants.length === 0){
-        DB.deleteGame(key);
-        this.updateData(key);
+      if(DB.games.hasOwnProperty(key)){
+        DB.games[key].leave(socket.id)
+        if(DB.games[key].participants.length === 0){
+          DB.deleteGame(key);
+          this.updateData(key);
+        }
       }
     }
     this.shareLobbies();
@@ -134,7 +57,7 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("START_GAME")
   startGame(socket:Socket,data:Record<string,string>){
     if(DB.games.hasOwnProperty(data.gameId)){
-      DB.games[data.gameId].isGameStarted = true;
+      DB.games[data.gameId].startGame();
       }
     this.isStarted(socket,data)
   }
@@ -158,21 +81,19 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("GET_TIMER")
     getTimer(socket:Socket,data){
     if(DB.games.hasOwnProperty(data.gameId)) {
-      socket.emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
+      this.server.to(data.gameId).emit("TIMER_DATA",{time:DB.games[data.gameId].timer});      
     }
   }
   @SubscribeMessage("START_TIMER")
   startTimer(socket:Socket,data){
     if(DB.games.hasOwnProperty(data.gameId)) {
-      DB.games[data.gameId].setTimer();
-      socket.emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
+      DB.games[data.gameId].setTimer(this.server,data.gameId);
+      this.server.to(data.gameId).emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
     }
   }
-  
 
   @SubscribeMessage("GET_LOBBIES")
   shareLobbies(){
     this.server.emit("SHARE_LOBBIES",{games:DB.games})
   }
-
 }
