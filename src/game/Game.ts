@@ -82,6 +82,7 @@ export class Game {
       }
     })
   }
+  
   join(participant, socket) {
     let isUserAlredyIn = false;
     this.participants?.forEach(user => {

@@ -35,41 +35,49 @@ export class GameGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage("JOIN_TEAM")
-  joinTeam(socket: Socket,data:any){
-    if(DB.games.hasOwnProperty(data.gameId)){
-      DB.games[data.gameId].leaveTeam(socket.id);
-      DB.games[data.gameId].joinTeam(socket.id,data.team);
-      this.updateData(data.gameId);
+  joinTeam(socket: Socket,{gameId,team}:any){
+    if(DB.games.hasOwnProperty(gameId)){
+      DB.games[gameId].leaveTeam(socket.id);
+      DB.games[gameId].joinTeam(socket.id,team);
+      this.updateData(gameId);
     }
   }
   
   @SubscribeMessage("CREATE_GAME")
-  createRoom(socket: Socket,data:any){
-      DB.createGame(data.gameId,new Game(data.teams))
+  createRoom(socket: Socket,{gameId,teams}:any){
+      DB.createGame(gameId,new Game(teams))
   }
 
   @SubscribeMessage("IS_GAME_STARTED")
-  isStarted(socket:Socket,data:Record<string,string>){
-    if(DB.games.hasOwnProperty(data.gameId)){
-      this.server.to(data.gameId).emit("GAME_STATE",{isStarted:DB.games[data.gameId].isGameStarted})
+  isStarted(socket:Socket,{gameId}:Record<string,string>){
+    if(DB.games.hasOwnProperty(gameId)){
+      this.server.to(gameId).emit("GAME_STATE",{isStarted:DB.games[gameId].isGameStarted})
     }
   }
   @SubscribeMessage("START_GAME")
-  startGame(socket:Socket,data:Record<string,string>){
-    if(DB.games.hasOwnProperty(data.gameId)){
-      DB.games[data.gameId].startGame();
+  startGame(socket:Socket,{gameId}:Record<string,string>){
+    if(DB.games.hasOwnProperty(gameId)){
+      DB.games[gameId].startGame(this.server,gameId);
       }
-    this.isStarted(socket,data)
+    this.isStarted(socket,{gameId})
+  }
+
+  @SubscribeMessage("MOVE_END")
+  endMove(socket:Socket,{gameId,points}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].endMove(gameId,points);
+      this.updateData(gameId);
+    }
   }
 
   @SubscribeMessage("LEAVE")
-  leaveRoom(socket:Socket,data:any){
-    if(DB.games.hasOwnProperty(data.gameId)) {
-      socket.leave(data.gameId);
-      DB.games[data.gameId].leave(socket.id);
-      this.updateData(data.gameId);
-      if (DB.games[data.gameId].participants.length === 0) {
-        DB.deleteGame(data.gameId);
+  leaveRoom(socket:Socket,{gameId}:any){
+    if(DB.games.hasOwnProperty(gameId)) {
+      socket.leave(gameId);
+      DB.games[gameId].leave(socket.id);
+      this.updateData(gameId);
+      if (DB.games[gameId].participants.length === 0) {
+        DB.deleteGame(gameId);
       }
       this.shareLobbies();
     }
