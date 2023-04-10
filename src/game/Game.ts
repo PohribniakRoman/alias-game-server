@@ -20,7 +20,7 @@ export class Game {
         clearInterval(intervalID);
         server.to(roomId).emit("TIMER_END");
       } else {
-        this.timer--;
+        this.timer-=0.5;
       }
     }, 1000)
   }
@@ -43,10 +43,10 @@ export class Game {
       }
     }
   }
-  endMove(points){
+  endMove(){
+    this.game[this.currentTeam()].points+=this.checked.filter(word =>word.guessed === true).length;
     this.allWords = [{}];
     this.checked = [{}];
-    this.game[this.currentTeam()].points+=points;
     this.game[this.currentTeam()].participants = this.game[this.currentTeam()].participants.map(user=>{user.myMove = !user.myMove;return user}) 
     this.move++;
   }
@@ -62,14 +62,25 @@ export class Game {
       })
     })
   }
-  setWords(checked,all){
-    this.allWords = all;
-    this.checked = checked;
+  
+  isPlayerAsking(socket){
+    const player = this.game[this.currentTeam()].participants.filter(user=>user.myMove === true)[0];
+    if(player.sockets.includes(socket)){
+      return true;
+    }
+    return false;
   }
   currentTeam(){
-    return this.teams[this.move % this.teams.length]; 
+    return this.teams[this.move-1 % this.teams.length].name; 
+  }
+  loadAll(all){
+    this.allWords = all;
   }
 
+  loadChecked(checked){
+    this.checked = checked;
+  }
+  
   startGame() {
     this.move = 1;
     this.isGameStarted = true;

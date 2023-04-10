@@ -62,11 +62,47 @@ export class GameGateway implements OnGatewayDisconnect {
     this.isStarted(socket,{gameId})
   }
 
-  @SubscribeMessage("MOVE_END")
-  endMove(socket:Socket,{gameId,points}){
+  @SubscribeMessage("ADD_CHECKED")
+  addCheck(socket:Socket,{gameId,words}){
     if(DB.games.hasOwnProperty(gameId)) {
-      DB.games[gameId].endMove(gameId,points);
+      DB.games[gameId].loadChecked(words);
+      this.server.to(gameId).emit("SEND_CHECKED",{words:DB.games[gameId].checked})
+    }
+  }
+  @SubscribeMessage("GET_WORDS")
+  sendWords(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      this.server.to(gameId).emit("SEND_CHECKED",{words:DB.games[gameId].checked})
+    }
+  }
+  @SubscribeMessage("GET_ALL")
+  sendAllWords(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      this.server.to(gameId).emit("SEND_ALL",{words:DB.games[gameId].allWords})
+    }
+  }
+
+  @SubscribeMessage("ADD_ALL")
+  addAll(socket:Socket,{gameId,words}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].loadAll(words);
+      this.server.to(gameId).emit("SEND_ALL",{words})
+    }
+  }
+  @SubscribeMessage("MOVE_END")
+  endMove(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].endMove();
       this.updateData(gameId);
+    }
+  }
+
+  @SubscribeMessage("IS_ASKING")
+  isAsking(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      if(DB.games[gameId].isPlayerAsking(socket.id)){
+        this.server.to(socket.id).emit("START_ASK");
+      }      
     }
   }
 
@@ -92,11 +128,22 @@ export class GameGateway implements OnGatewayDisconnect {
       this.server.to(data.gameId).emit("TIMER_DATA",{time:DB.games[data.gameId].timer});      
     }
   }
+
   @SubscribeMessage("START_TIMER")
-  startTimer(socket:Socket,data){
-    if(DB.games.hasOwnProperty(data.gameId)) {
-      DB.games[data.gameId].setTimer(this.server,data.gameId);
-      this.server.to(data.gameId).emit("TIMER_DATA",{time:DB.games[data.gameId].timer});
+  startTimer(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].setTimer(this.server,gameId);
+      DB.games[gameId].startMove(this.server,gameId);
+      this.server.to(gameId).emit("TIMER_DATA",{time:DB.games[gameId].timer});
+    }
+  }
+
+  @SubscribeMessage("END_TIMER")
+  endTimer(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].endMove();
+      console.log("MOVE ENDED");
+      this.server.to(gameId).emit("TIMER_END");
     }
   }
 
