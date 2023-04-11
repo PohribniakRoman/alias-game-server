@@ -66,9 +66,16 @@ export class GameGateway implements OnGatewayDisconnect {
   addCheck(socket:Socket,{gameId,words}){
     if(DB.games.hasOwnProperty(gameId)) {
       DB.games[gameId].loadChecked(words);
-      this.server.to(gameId).emit("SEND_CHECKED",{words:DB.games[gameId].checked})
+      this.server.to(gameId).emit("SEND_CHECKED",{words})
     }
   }
+  @SubscribeMessage("GET_MOVE")
+  getMove(socket:Socket,{gameId}){
+    if(DB.games.hasOwnProperty(gameId)) {
+      DB.games[gameId].getMove(this.server);
+    }
+  }
+
   @SubscribeMessage("GET_WORDS")
   sendWords(socket:Socket,{gameId}){
     if(DB.games.hasOwnProperty(gameId)) {
@@ -92,7 +99,7 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("MOVE_END")
   endMove(socket:Socket,{gameId}){
     if(DB.games.hasOwnProperty(gameId)) {
-      DB.games[gameId].endMove();
+      DB.games[gameId].endMove(this.server);
       this.updateData(gameId);
     }
   }
@@ -141,7 +148,7 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage("END_TIMER")
   endTimer(socket:Socket,{gameId}){
     if(DB.games.hasOwnProperty(gameId)) {
-      DB.games[gameId].endMove();
+      DB.games[gameId].endMove(this.server);
       console.log("MOVE ENDED");
       this.server.to(gameId).emit("TIMER_END");
     }

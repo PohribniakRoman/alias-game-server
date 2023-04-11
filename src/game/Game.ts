@@ -43,12 +43,27 @@ export class Game {
       }
     }
   }
-  endMove(){
-    this.game[this.currentTeam()].points+=this.checked.filter(word =>word.guessed === true).length;
+  endMove(server){
+    this.game[this.currentTeam()].point+=this.checked.filter(word =>word.guessed === true).length;
+    console.log(this.checked.filter(word =>word.guessed === true).length);
     this.allWords = [{}];
     this.checked = [{}];
     this.game[this.currentTeam()].participants = this.game[this.currentTeam()].participants.map(user=>{user.myMove = !user.myMove;return user}) 
+    console.log(this.currentTeam());
+      this.game[this.currentTeam()].participants.forEach(user=>{
+      user.sockets.forEach(socket=>{
+          server.to(socket).emit("SEND_END_MOVE")
+      })
+    })
     this.move++;
+    this.getMove(server)
+  }
+  getMove(server){
+    this.game[this.currentTeam()].participants.forEach(user=>{
+      user.sockets.forEach(socket=>{
+          server.to(socket).emit("SEND_MOVE")
+      })
+    })
   }
   startMove(server, roomId){
     this.setTimer(server, roomId)
