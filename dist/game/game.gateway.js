@@ -129,7 +129,6 @@ let GameGateway = class GameGateway {
     endTimer(socket, { gameId }) {
         if (DB.games.hasOwnProperty(gameId)) {
             DB.games[gameId].endMove(this.server);
-            console.log("MOVE ENDED");
             this.server.to(gameId).emit("TIMER_END");
         }
     }

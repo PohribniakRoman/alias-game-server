@@ -42,17 +42,15 @@ class Game {
     }
     endMove(server) {
         this.game[this.currentTeam()].point += this.checked.filter(word => word.guessed === true).length;
-        console.log(this.checked.filter(word => word.guessed === true).length);
         this.allWords = [{}];
         this.checked = [{}];
         this.game[this.currentTeam()].participants = this.game[this.currentTeam()].participants.map(user => { user.myMove = !user.myMove; return user; });
-        console.log(this.currentTeam());
         this.game[this.currentTeam()].participants.forEach(user => {
             user.sockets.forEach(socket => {
                 server.to(socket).emit("SEND_END_MOVE");
             });
         });
-        this.move++;
+        this.move += 1;
         this.getMove(server);
     }
     getMove(server) {
@@ -83,7 +81,7 @@ class Game {
         return false;
     }
     currentTeam() {
-        return this.teams[this.move - 1 % this.teams.length].name;
+        return this.teams[(this.move - 1) % this.teams.length].name;
     }
     loadAll(all) {
         this.allWords = all;
